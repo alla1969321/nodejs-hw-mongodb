@@ -4,7 +4,7 @@ const pino = require('pino')();
 const initMongoConnection = async () => {
   try {
     const { MONGODB_USER, MONGODB_PASSWORD, MONGODB_URL, MONGODB_DB } = process.env;
-    const uri = `mongodb+srv://${MONGODB_USER}:${MONGODB_PASSWORD}@${MONGODB_URL}/${MONGODB_DB}?retryWrites=true&w=majority`;
+    const uri = `mongodb+srv://belka3:uTkICqbQY4MPazP1@cluster0.nnm79.mongodb.net/`;
 
     await mongoose.connect(uri); // Видалено параметри
     pino.info('Mongo connection successfully established!');
