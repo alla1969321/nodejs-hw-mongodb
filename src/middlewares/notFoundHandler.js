@@ -1,8 +1,5 @@
-// src/middlewares/notFoundHandler.js
-const createError = require('http-errors');
-
-const notFoundHandler = (req, res, next) => {
-    next(createError(404, "Route not found"));
+export const notFoundHandler = (req, res, next) => {
+    res.status(404).json({
+        message: 'Route not found'
+    });
 };
-
-module.exports = notFoundHandler;
