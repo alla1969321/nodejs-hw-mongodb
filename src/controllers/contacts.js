@@ -1,119 +1,103 @@
-const pino = require('pino')();
-const { getAllContacts, getContactById, createContact, updateContact, deleteContact } = require('../services/contacts');
-const createError = require('http-errors');
-const mongoose = require('mongoose');
+import { getAllContacts, getContactsById, createContact, deleteContact, updateContact } from "../services/contacts.js";
+import createHttpError from "http-errors";
+import { parsePaginationParams } from "../utils/parsePaginationParams.js";
+import { parseSortParams } from "../utils/parseSortParams.js";
+import { parseFilterParams } from "../utils/parseFilterParams.js";
 
-// Контролер для отримання всіх контактів
-const getAllContactsController = async (req, res, next) => {
-    try {
-        const contacts = await getAllContacts();
-        res.status(200).json({
-            status: 200,
-            message: "Successfully found contacts!",
-            data: contacts,
-        });
-    } catch (error) {
-        pino.error('Error fetching contacts:', error);
-        next(error);
-    }
-};
 
-// Контролер для отримання контакту за ID
-const getContactByIdController = async (req, res, next) => {
+
+export const getContactsController = async (req, res) => {
+    const { page, perPage } = parsePaginationParams(req.query);
+
+    const { sortBy, sortOrder } = parseSortParams(req.query);
+
+    const filter = parseFilterParams(req.query);
+
+    const contacts = await getAllContacts({
+        page,
+        perPage,
+        sortBy,
+        sortOrder,
+        filter,
+    });
+
+    res.status(200).json({
+        status: 200,
+        message: "Successfully found contacts!",
+        data: contacts,
+    });
+
+  };
+
+export const getContactsByIdController = async (req, res) => {
+
     const { contactId } = req.params;
+    const contact = await getContactsById(contactId);
 
-    if (!mongoose.Types.ObjectId.isValid(contactId)) {
-        throw createError(404, "Contact not found");
+    if (!contact) {
+        throw createHttpError(404, 'Contact not found');
     }
 
-    try {
-        const contact = await getContactById(contactId);
-        if (!contact) {
-            throw createError(404, "Contact not found");
-        }
-        res.status(200).json({
-            status: 200,
-            message: `Successfully found contact with id ${contactId}!`,
-            data: contact,
-        });
-    } catch (error) {
-        pino.error('Error fetching contact:', error);
-        next(error);
-    }
+    res.json({
+        status: 200,
+        message: `Successfully found contact with id ${contactId}!`,
+        data: contact,
+      });
+  };
+
+export const createContactController = async (req, res) => {
+    const contact = await createContact(req.body);
+
+    res.status(201).json({
+        status: 201,
+        message: 'Successfully created a contact!',
+        data: contact,
+    });
 };
 
-// Контролер для створення нового контакту
-const createContactController = async (req, res, next) => {
-    const { name, phoneNumber, email, isFavourite, contactType } = req.body;
-
-    // Перевірка на обов'язкові поля
-    if (!name || !phoneNumber || !contactType) {
-        throw createError(400, "Name, phoneNumber, and contactType are required");
-    }
-
-    try {
-        const newContact = await createContact({ name, phoneNumber, email, isFavourite, contactType });
-        res.status(201).json({
-            status: 201,
-            message: "Successfully created a contact!",
-            data: newContact,
-        });
-    } catch (error) {
-        pino.error('Error creating contact:', error);
-        next(createError(500, "Something went wrong"));
-    }
-};
-
-// Контролер для оновлення існуючого контакту
-const updateContactController = async (req, res, next) => {
+export const deleteContactController = async (req, res, next) => {
     const { contactId } = req.params;
-    const updates = req.body;
+    const contact = await deleteContact(contactId);
 
-    if (!mongoose.Types.ObjectId.isValid(contactId)) {
-        throw createError(404, "Contact not found");
+    if (!contact) {
+        next(createHttpError(404, 'Contact not found'));
+        return;
     }
 
-    try {
-        const updatedContact = await updateContact(contactId, updates);
-        if (!updatedContact) {
-            throw createError(404, "Contact not found");
-        }
-
-        res.status(200).json({
-            status: 200,
-            message: "Successfully patched the contact!",
-            data: updatedContact,
-        });
-    } catch (error) {
-        pino.error('Error updating contact:', error);
-        next(createError(500, "Something went wrong"));
-    }
+    res.status(204).send();
 };
 
-// Контролер для видалення існуючого контакту
-const deleteContactController = async (req, res, next) => {
+export const upsertContactController = async (req, res, next) => {
     const { contactId } = req.params;
+    const result = await updateContact(contactId, req.body, { upsert: true, });
 
-    if (!mongoose.Types.ObjectId.isValid(contactId)) {
-        throw createError(404, "Contact not found");
+    if (!result) {
+        next(createHttpError(404, 'Contact not found'));
+        return;
     }
 
-    try {
-        const deletedContact = await deleteContact(contactId);
-        if (!deletedContact) {
-            throw createError(404, "Contact not found");
-        }
-        res.status(204).send(); // Відповідь без тіла для успішного видалення
-    } catch (error) {
-        pino.error('Error deleting contact:', error);
-        next(createError(500, "Something went wrong"));
-    }
+    const status = result.isNew ? 201 : 200;
+
+    res.status(status).json({
+        status,
+        message: 'Successfully upserted a contact!',
+        data: result.contact,
+    });
 };
 
-module.exports = {
-    getAllContactsController,
-    getContactByIdController,
-    createContactController,
-    updateContactController,
-    deleteContactController,
+export const patchContactController = async (req, res, next) => {
+    const { contactId } = req.params;
+    const result = await updateContact(contactId, req.body);
+
+    if (!result) {
+        next(createHttpError(404, 'Contact not found'));
+        return;
+    }
+
+    res.json({
+        status: 200,
+        message: 'Successfully patched a contact!',
+        data: result.contact,
+    });
 };
+

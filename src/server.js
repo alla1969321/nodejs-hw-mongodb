@@ -1,54 +1,43 @@
-// src/server.js
-const express = require('express');
-const cors = require('cors');
-const pino = require('pino')();
-const { getAllContacts, getContactById } = require('./services/contacts'); // Імпорт сервісів
+import express from 'express';
+import pino from "pino-http";
+import cors from "cors";
+import { env } from './utils/env.js';
+import contactsRouter from './routers/contacts.js';
+import { notFoundHandler } from './middlewares/notFoundHandler.js';
+import { errorHandler } from './middlewares/errorHandler.js';
 
-const setupServer = () => {
+const PORT = Number(env('PORT', 3000));
+
+export const setupServer = () => {
     const app = express();
-    app.use(cors());
-    app.use(express.json());
 
-    // Отримання всіх контактів
-    app.get('/contacts', async (req, res) => {
-        try {
-            const contacts = await getAllContacts(); // Виклик сервісу
-            res.status(200).json({
-                status: 200,
-                message: "Successfully found contacts!",
-                data: contacts,
-            });
-        } catch (error) {
-            pino.error('Error fetching contacts:', error);
-            res.status(500).json({ message: 'Error fetching contacts' });
-        }
+  app.use(express.json());
+   app.use(cors());
+
+
+    app.use(
+        pino({
+          transport: {
+            target: 'pino-pretty',
+          },
+        }),
+      );
+
+
+    app.get('/', (req, res) => {
+        res.json({
+            message: 'Hello World!'
+        });
     });
 
-    // Отримання контакту за ID
-    app.get('/contacts/:contactId', async (req, res) => {
-        const { contactId } = req.params;
-        try {
-            const contact = await getContactById(contactId); // Виклик сервісу
-            if (!contact) {
-                return res.status(404).json({ message: 'Contact not found' });
-            }
-            res.status(200).json({
-                status: 200,
-                message: `Successfully found contact with id ${contactId}!`,
-                data: contact,
-            });
-        } catch (error) {
-            pino.error('Error fetching contact:', error);
-            res.status(500).json({ message: 'Error fetching contact' });
-        }
-    });
+  app.use(contactsRouter);
 
-    // Інші маршрути...
+  app.use('*', notFoundHandler);
 
-    const PORT = process.env.PORT || 3000;
+  app.use(errorHandler);
+
     app.listen(PORT, () => {
-        pino.info(`Server is running on port ${PORT}`);
-    });
+    console.log(`Server is running on port ${PORT}`);
+  });
 };
 
-module.exports = setupServer;
