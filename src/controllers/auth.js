@@ -23,7 +23,7 @@ const setupSession = (res, session) => {
   });
   res.cookie('sessionId', session._id, {
     httpOnly: true,
-    expires: new Date(Date.now() + FIFTEEN_MINUTES),
+    expires: new Date(Date.now() + THIRTY_DAYS),
   });
 };
 
