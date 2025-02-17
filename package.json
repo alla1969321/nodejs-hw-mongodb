@@ -25,14 +25,4 @@
     "mongoose": "^8.10.1",
     "nodemon": "^3.1.9",
     "pino-http": "^10.4.0"
-  },
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/alla1969321/nodejs-hw-mongodb.git"
-  },
-  "bugs": {
-    "url": "https://github.com/alla1969321/nodejs-hw-mongodb/issues"
-  },
-  "homepage": "https://github.com/alla1969321/nodejs-hw-mongodb#readme",
-  "description": ""
-}
+  }
